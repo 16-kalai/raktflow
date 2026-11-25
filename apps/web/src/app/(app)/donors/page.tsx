@@ -73,7 +73,7 @@ export default function DonorsPage() {
     <>
       <PageHeader
         title="Donors"
-        description="The bank's donor registry. RaktFlow only calls donors who consented, passed the DND check, and are past the 90/120-day gap. Names and numbers never leave RaktFlow; Flagsmith and Sarvam see a pseudonymous ID."
+        description="The bank's donor registry. RaktFlow only calls donors who consented, passed the DND check, and are past the 90/120-day gap. Flagsmith only sees a pseudonymous ID; Sarvam gets just the name and number it needs to place the call."
       >
         <Button variant="outline" asChild>
           <a href="/api/donors/template">

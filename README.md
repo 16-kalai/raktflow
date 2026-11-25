@@ -14,13 +14,62 @@ Every Diwali, Durga Puja and Ganeshotsav, regular donors travel home, college dr
 3. **Calls donors.** Voice workers on Kubernetes pick up call jobs and place real phone calls through a **Sarvam AI** voice agent. The agent says it is an AI on a recorded line, checks health screening questions, offers live slots and books one through RaktFlow's API.
 4. **Stops when the gap is covered.** Bookings × expected yield (0.7 show-up × 0.89 pass rate) are counted against the gap. When the gap is covered, RaktFlow turns `surge_mode` off and the workers stop dialling.
 
-## How each sponsor is used
+## How the sponsors work together
 
-| Sponsor | What it does in RaktFlow |
-|---|---|
-| **Flagsmith** | The control room. `festive_mode` is enabled by segments (`festive_season_MH`, `festive_season_WB`) using the bank's state and today's date as traits. `surge_mode` is the kill switch that starts and stops all calling. `max_concurrent_calls` caps calls across every pod. `forecast_config`, `call_script` and `health_questions` are remote config, so ops can change the forecast and the call script without a deploy. Server-side local evaluation refreshes every 10s, and flags fail closed (no calls) if Flagsmith is unreachable. |
-| **NudgeBee** | Human approval and ops automation. The "Blood shortage approval" workflow goes webhook → LLM summary → in-app approval → Flagsmith API (`surge_mode` ON) → callback to RaktFlow. The NudgeBee agent also watches the `raktflow` namespace on the Kubernetes cluster. |
-| **Sarvam AI** | The voice agent ("RaktFlow Donor Booking", Samvaad) places outbound calls in English and Indian languages. It uses tools for `get_slots` and `book_slot` (authenticated with `x-api-key`), records health answers and opt-outs, and sends a post-call webhook with the transcript. |
+None of the three is bolted on. Remove any one and the product stops working: Flagsmith switches it on, NudgeBee lets it act, and Sarvam does the calling.
+
+```
+Flagsmith segment flips festive_mode on (state + date traits)
+   → forecast shows O+ short on 11 Nov, gap 25 units
+   → NudgeBee: AI summary → medical officer approves → NudgeBee writes surge_mode ON in Flagsmith
+   → voice workers on Kubernetes (watched by the NudgeBee agent) see surge_mode and start dialling
+   → Sarvam agent calls the donor, asks Flagsmith's health questions, books a slot through RaktFlow's API
+   → gap covered → RaktFlow writes surge_mode OFF in Flagsmith → every worker stops within seconds
+```
+
+### 🟢 Flagsmith: the control room (7 flags · 2 segments · 2 identity types)
+
+| Flag | Type | Who changes it | What it controls in the code |
+|---|---|---|---|
+| `festive_mode` | on/off + segment overrides | **Segments** `festive_season_MH`, `festive_season_WB` (traits `state` and `today`) | Applies festive donor drop-off in the forecast for that state's festival window ([forecast.ts](packages/domain/src/forecast.ts)) |
+| `surge_mode` | on/off | **NudgeBee** turns it on after approval. **RaktFlow** turns it off when the gap is covered | Checked by every worker before every dial: off means nobody gets called ([main.ts](apps/worker/src/main.ts)) |
+| `outbound_calls_enabled` | on/off | Ops | Global kill switch for all outbound calls |
+| `max_concurrent_calls` | number | Ops | Enforced across **all pods** by an advisory-locked Postgres permit table ([calls.ts](packages/domain/src/calls.ts)) |
+| `health_questions` | JSON, versioned, validated with zod | Medical officer | The exact screening questions the Sarvam agent asks on every call. The version is logged per call |
+| `forecast_config` | JSON, validated with zod | Ops | Horizon, safe-stock days, shelf life, show-up and screening yield, festival factors |
+| `call_script` | string per donor identity | Ops | Evaluated per donor (traits: language, donor type, state). Wiring it into the agent prompt is the next step |
+
+How it's built:
+- **Identities, not just flags.** Each bank is an identity (`bank_<slug>` with `state` + `today` traits), so festive mode turns on **by itself** per state and per date. Drag the dashboard's time-travel clock and you can watch it happen. Each donor is a pseudonymous identity (`donor_<ref>`).
+- **Local evaluation.** The server-side key keeps the environment document in memory, so a flag check costs no network call, however many requests or workers there are ([client.ts](packages/flags/src/client.ts)).
+- **Fails closed.** If Flagsmith is unreachable, the defaults are no festive mode, no surge and 0 concurrent calls. Nobody gets called by accident ([definitions.ts](packages/flags/src/definitions.ts)).
+- **Write path.** NudgeBee and RaktFlow both write flags through the Flagsmith Admin API ([admin.ts](packages/flags/src/admin.ts)). A bootstrap script creates every flag and segment and is safe to run twice ([bootstrap.ts](packages/flags/src/bootstrap.ts)).
+- **Change propagation.** An HMAC-verified audit webhook ([/api/webhooks/flagsmith](apps/web/src/app/api/webhooks/flagsmith/route.ts)) refreshes the cache at once and logs who changed what to the dashboard's activity feed. On top of that, flags refresh every 10 seconds and immediately after RaktFlow's own writes.
+
+### 🔵 NudgeBee: the human in the loop and ops (live workflow)
+
+**Workflow "Blood shortage approval"** (live on the `raktflow-orbstack` account):
+1. **Webhook trigger.** RaktFlow posts the shortage plan: group, date, gap, bookings needed and why ([campaigns.ts](packages/domain/src/campaigns.ts)).
+2. **`llm_summary`.** An LLM turns the plan into a short brief for the medical officer.
+3. **`core_approval`.** An in-app approval with a 1-hour timeout.
+4. **`integrations_http`.** Runs only if not rejected: a PATCH to Flagsmith that turns `surge_mode` on.
+5. **`integrations_http-1`.** A callback to [/api/ops/nudgebee](apps/web/src/app/api/ops/nudgebee/route.ts) that records the approver and run id in RaktFlow's audit trail.
+
+**The approval is the safety gate.** Only a campaign approved through NudgeBee can ring a real phone. The in-app "approve here" fallback books simulated test donors only.
+
+**Kubernetes ops.** The NudgeBee agent runs on the cluster via Helm and watches the `raktflow` namespace where the voice workers run.
+
+**Rate-limit loop (code shipped).** Each worker counts Sarvam 429s ([limits.ts](apps/worker/src/limits.ts)). Three or more in 60 seconds sends NudgeBee a webhook with a suggested lower `max_concurrent_calls`. Workflow B (logs → AI investigation → approval → Flagsmith) is described in [SPONSOR-SETUP.md](docs/SPONSOR-SETUP.md).
+
+### 🟣 Sarvam AI: the voice (real calls)
+
+- **The agent.** "RaktFlow Donor Booking" (Samvaad) places real outbound calls through the Sarvam Voice API ([packages/sarvam](packages/sarvam/src/index.ts)). Donor languages map to 11 Indian languages.
+- **Disclosure.** The agent says it is an AI on a recorded line and that the donor can say "stop" at any time.
+- **Inputs per call.** It gets exactly 7 variables: donor ref, name, centre, blood group, festive window and **the health questions from Flagsmith**.
+- **Two tools that call back into RaktFlow.** [`get_slots`](apps/web/src/app/api/tools/get_slots/route.ts) reads live capacity and [`book_slot`](apps/web/src/app/api/tools/book_slot/route.ts) books idempotently. Both authenticate with `x-api-key`, stored as a Sarvam workspace secret.
+- **After the call.** The [post-call webhook](apps/web/src/app/api/webhooks/sarvam/route.ts) stores the transcript, the health answers and the outcome (booked / declined / deferred / opted-out). Opting out removes the donor from future calls. If the agent reports a deferral (e.g. recent fever), the donor is held back for that many days.
+- **Back-pressure.** A 429 from Sarvam releases the call permit and re-queues the job with jitter. Nothing is dropped and nobody is called twice.
+- **Proof.** A real call made today booked donor Ravi for **2 Nov, 5 PM**, with all three health checks answered, and the transcript appeared live on the dashboard.
 
 ## Architecture
 
@@ -31,7 +80,7 @@ Next.js web app (Vercel) ──┬── Neon Postgres (stock, donors, patients,
                            │
   shortage ─► NudgeBee workflow ─► approval ─► Flagsmith surge_mode ON ─► /api/ops/nudgebee
                                                        │
-Voice workers (Kubernetes, 3 replicas, KEDA-ready) ◄───┘ poll call_jobs
+Voice workers (Kubernetes, 3 replicas; KEDA ScaledObject 1→50 on queue depth) ◄───┘ poll call_jobs
   lease + SKIP LOCKED claim, global Postgres call permits
         │
         └─► Sarvam voice agent ─► tools: /api/tools/get_slots, /api/tools/book_slot
@@ -43,11 +92,11 @@ Voice workers (Kubernetes, 3 replicas, KEDA-ready) ◄───┘ poll call_job
 - A global, advisory-locked permit table enforces `max_concurrent_calls` across all pods.
 - Bookings and webhooks are idempotent, so replays are safe.
 - Donor CSV import validates rows, normalises phones to E.164, de-duplicates and inserts in batches of 500 (up to 50k rows per file).
-- The worker image is a single esbuild bundle, with a KEDA ScaledObject in `deploy/k8s`.
+- The worker image is a single esbuild bundle. A KEDA ScaledObject in `deploy/k8s` scales workers from 1 to 50 on the number of queued calls.
 
 **Safety:**
 - Donors are only called if they consented, passed the DND check, are past the 90/120-day donation gap, and have not opted out.
-- Flagsmith and Sarvam see a pseudonymous donor ID, not names or phone numbers.
+- Flagsmith only ever sees pseudonymous IDs (`bank_<slug>`, `donor_<ref>`). Sarvam receives only the name and number it needs to place the call.
 - Synthetic demo donors are never dialled. Only a NudgeBee approval rings the single demo phone. Approving inside the app books test donors only.
 
 ## Repo layout
@@ -70,7 +119,7 @@ Requirements: Node 22+, pnpm 12, a Postgres URL (Neon works), and optionally a l
 
 ```bash
 pnpm install
-# create apps/web/.env.local with the variables below
+cp .env.example apps/web/.env.local                   # fill in the values below
 pnpm db:migrate && pnpm db:seed
 pnpm dev                                              # http://localhost:3000
 pnpm test                                             # forecast engine tests
@@ -100,4 +149,4 @@ This project was built with help from Claude Code (Anthropic) for code, UI and d
 
 ## License
 
-MIT
+MIT, see [LICENSE](LICENSE).
