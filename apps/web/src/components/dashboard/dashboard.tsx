@@ -182,7 +182,7 @@ function ClockBar({ data, onChange }: { data: OverviewData; onChange: () => void
 
   return (
     <Card className="py-4">
-      <CardContent className="flex flex-col gap-4 lg:flex-row lg:items-center">
+      <CardContent className="flex flex-col gap-4 xl:flex-row xl:items-center">
         <div className="flex min-w-64 items-center gap-3">
           <CalendarDays className="size-5 text-primary" />
           <div>

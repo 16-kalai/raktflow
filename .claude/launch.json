@@ -1,0 +1,6 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "raktflow-web", "runtimeExecutable": "pnpm", "runtimeArgs": ["--filter", "@raktflow/web", "dev"], "port": 3000 }
+  ]
+}
