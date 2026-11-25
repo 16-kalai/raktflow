@@ -10,3 +10,6 @@ dist
 coverage
 apps/worker/out
 .env*
+
+# demo recordings (large; shared separately)
+demo-assets/*.mov

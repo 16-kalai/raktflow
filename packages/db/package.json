@@ -15,7 +15,8 @@
     "seed": "tsx src/seed.ts",
     "typecheck": "tsc --noEmit",
     "set-demo-contact": "tsx src/scripts/set-demo-contact.ts",
-    "retry-demo-call": "tsx src/scripts/retry-demo.ts"
+    "retry-demo-call": "tsx src/scripts/retry-demo.ts",
+    "redo-demo-call": "tsx src/scripts/redo-demo-call.ts"
   },
   "dependencies": {
     "@raktflow/core": "workspace:*",
