@@ -36,6 +36,7 @@ for (const f of flags) {
 }
 
 const existing = await admin.listSegments();
+let priority = 10;
 for (const [state, window] of Object.entries(DEMO_FESTIVE_SEASON_BY_STATE)) {
   const name = `festive_season_${state}`;
   let segment = existing.find((s) => s.name === name);
@@ -50,7 +51,7 @@ for (const [state, window] of Object.entries(DEMO_FESTIVE_SEASON_BY_STATE)) {
   } else {
     console.log(`= segment ${name} exists`);
   }
-  await admin.setSegmentOverride(FLAG.festiveMode, segment.id, true);
+  await admin.setSegmentOverride(FLAG.festiveMode, segment.id, true, priority++);
   console.log(`  festive_mode ON for ${name}`);
 }
 for (const name of [FLAG.surgeMode, FLAG.maxConcurrentCalls, FLAG.outboundCallsEnabled]) {
