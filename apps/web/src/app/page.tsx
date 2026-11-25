@@ -19,6 +19,8 @@ const STEPS = [
   { icon: BellRing, title: "Stops when the gap is covered", text: "Counts expected units, not bookings, and stops calling when it's enough." },
 ];
 
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
   const session = await getSession().catch(() => null);
   if (session) redirect("/dashboard");

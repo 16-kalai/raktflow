@@ -10,3 +10,7 @@ minimumReleaseAgeExclude:
   - "@better-auth/prisma-adapter@1.7.28"
   - "@better-auth/telemetry@1.7.28"
   - better-auth@1.7.28
+
+# pnpm blocks dependency install scripts by default; esbuild needs its own.
+allowBuilds:
+  esbuild: true
