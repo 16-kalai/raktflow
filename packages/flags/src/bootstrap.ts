@@ -53,4 +53,9 @@ for (const [state, window] of Object.entries(DEMO_FESTIVE_SEASON_BY_STATE)) {
   await admin.setSegmentOverride(FLAG.festiveMode, segment.id, true);
   console.log(`  festive_mode ON for ${name}`);
 }
+for (const name of [FLAG.surgeMode, FLAG.maxConcurrentCalls, FLAG.outboundCallsEnabled]) {
+  const f = await admin.findFeature(name);
+  console.log(`feature id ${name} = ${f?.id}`);
+}
+console.log(`NudgeBee HTTP step URL: ${cfg.baseUrl}/api/__future__/environments/${cfg.environmentKey}/features/<feature id>/`);
 console.log("Flagsmith is ready.");
