@@ -46,6 +46,11 @@ const SLOTS = Number(process.env.WORKER_SLOTS ?? 4);
 const mockProvider = new ProviderLimiter(Number(process.env.MOCK_PROVIDER_LIMIT ?? 3));
 const rateWatch = new RateLimitWatch(log);
 
+/** "2026-11-05" → "5 November", the way the agent should say it. */
+function spokenDate(iso: string): string {
+  return new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "long", timeZone: "UTC" }).format(new Date(`${iso}T00:00:00Z`));
+}
+
 let running = true;
 let inFlight = 0;
 
@@ -90,6 +95,9 @@ async function handle(job: CallJob): Promise<void> {
         donor_ref: donor.ref,
         donor_name: donor.name,
         bank_name: bank.name,
+        centre_name: bank.name,
+        festive_start: spokenDate(campaign.windowStart),
+        festive_end: spokenDate(campaign.windowEnd),
         blood_group: donor.bloodGroup,
         shortage_after: "Diwali",
         drive_start: campaign.windowStart,
