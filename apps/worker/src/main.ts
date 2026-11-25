@@ -91,26 +91,21 @@ async function handle(job: CallJob): Promise<void> {
     const { attemptId } = await sarvam.startOutboundCall({
       phone: donor.phone,
       language: donorFlags.language,
+      // Exactly the variables defined on the Sarvam agent; unknown ones are rejected (422).
       variables: {
         donor_ref: donor.ref,
         donor_name: donor.name,
-        bank_name: bank.name,
         centre_name: bank.name,
+        blood_group: donor.bloodGroup,
         festive_start: spokenDate(campaign.windowStart),
         festive_end: spokenDate(campaign.windowEnd),
-        blood_group: donor.bloodGroup,
-        shortage_after: "Diwali",
-        drive_start: campaign.windowStart,
-        drive_end: campaign.windowEnd,
-        call_script: donorFlags.callScript,
         health_questions: flags.healthQuestions.questions.map((q, i) => `${i + 1}. ${q.question}`).join(" "),
-        health_questions_version: flags.healthQuestions.version,
       },
       webhookUrl: `${appUrl}/api/webhooks/sarvam?key=${encodeURIComponent(process.env.RAKTFLOW_API_KEY ?? "")}`,
       webhookMetadata: { job_id: job.id, campaign_id: campaign.id },
     });
     await markDialled(db, job.id, attemptId);
-    await logEvent(db, bank.id, "call", "sarvam", `Calling ${donor.name} (${donor.ref}) in ${donorFlags.language}, script "${donorFlags.callScript}"`);
+    await logEvent(db, bank.id, "call", "sarvam", `Calling ${donor.name} (${donor.ref}) in ${donorFlags.language}, health questions ${flags.healthQuestions.version}`);
     log.info({ job: job.id, attemptId, concurrency: flags.maxConcurrentCalls }, "sarvam call started");
     // The permit is released by the post-call webhook (or expires with the lease).
   } catch (err) {
