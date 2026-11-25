@@ -93,7 +93,7 @@ export async function recordCallResult(db: Database, r: CallResult): Promise<Cal
   const answered = r.status === "connected";
   const v = r.variables;
   const optedOut = String(v.opted_out ?? "").toLowerCase() === "true";
-  const deferredDays = Number(v.deferred_days ?? 0);
+  const deferredDays = Number(v.deferred_days ?? 0) || 0;
   const outcome = !answered
     ? r.status === "no_answer" || r.status === "busy"
       ? "no_answer"
@@ -106,14 +106,15 @@ export async function recordCallResult(db: Database, r: CallResult): Promise<Cal
           ? "deferred"
           : "declined";
 
-  const health = typeof v.health_answers === "object" && v.health_answers ? (v.health_answers as Record<string, string>) : null;
+  const health = parseAnswers(v.health_answers);
   const [updated] = await db
     .update(callJobs)
     .set({
       status: "completed",
       outcome,
       interactionId: r.interactionId,
-      durationSec: r.durationSec,
+      // Sarvam reports fractional seconds (e.g. 109.7); store whole seconds.
+      durationSec: r.durationSec === null ? null : Math.round(r.durationSec),
       transcript: r.transcript,
       healthAnswers: health,
       lastError: r.failureReason,
@@ -129,6 +130,21 @@ export async function recordCallResult(db: Database, r: CallResult): Promise<Cal
   await releaseCallPermit(db, job.id);
   await logEvent(db, job.bankId, "call", "sarvam", `Call ${r.status}${r.durationSec ? ` (${r.durationSec}s)` : ""} → ${outcome}`, { jobId: job.id });
   return updated ?? null;
+}
+
+/** health_answers may arrive as an object or as a JSON string. */
+function parseAnswers(raw: unknown): Record<string, string> | null {
+  if (!raw) return null;
+  if (typeof raw === "object") return raw as Record<string, string>;
+  if (typeof raw === "string") {
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+      return parsed && typeof parsed === "object" ? (parsed as Record<string, string>) : { answers: raw };
+    } catch {
+      return { answers: raw };
+    }
+  }
+  return null;
 }
 
 export async function findJobForInteraction(db: Database, campaignId: string, donorRef: string): Promise<CallJob | null> {
