@@ -15,6 +15,7 @@ import {
 } from "@raktflow/core";
 import { closeDb, getDb } from "./index";
 import * as s from "./schema";
+import { DEMO_PATIENTS } from "./seed-data";
 
 config({ path: new URL("../../../.env.local", import.meta.url).pathname });
 
@@ -24,6 +25,8 @@ config({ path: new URL("../../../.env.local", import.meta.url).pathname });
  * is DEMO_DONOR_PHONE, a teammate who agreed to take the demo call.
  */
 const DEMO_SLUG = "sahyog-pune";
+
+
 
 // Small deterministic PRNG so every seed produces the same donors.
 let seed = 42;
@@ -73,7 +76,7 @@ async function main() {
 
   await db.insert(s.stockLots).values(demoStockLots().map((l) => ({ bankId: bank.id, bloodGroup: l.group, units: l.units, expiresOn: l.expiresOn })));
   await db.insert(s.camps).values(DEMO_CAMPS.map((c) => ({ bankId: bank.id, ...c, cancelReason: c.cancelReason ?? null })));
-  await db.insert(s.transfusions).values(DEMO_TRANSFUSIONS.map((t) => ({ bankId: bank.id, label: t.label, bloodGroup: t.group, date: t.date, units: t.units })));
+  await db.insert(s.transfusions).values(DEMO_PATIENTS.map((p) => ({ bankId: bank.id, ...p })));
 
   // Donation slots: Nov 1–7, four times a day.
   const slotRows = [];

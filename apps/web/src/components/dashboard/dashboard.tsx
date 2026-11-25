@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import { toast } from "sonner";
 import {
@@ -19,7 +18,6 @@ import {
   Users,
 } from "lucide-react";
 import { DIWALI_2026, addDays, diffDays } from "@raktflow/core";
-import { authClient } from "@/lib/auth-client";
 import { cn, istTime, shortDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,7 +26,6 @@ import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Slider } from "@/components/ui/slider";
-import { Logo } from "@/components/logo";
 import { ForecastChart } from "./forecast-chart";
 import type { OverviewData } from "./types";
 
@@ -48,9 +45,13 @@ async function post(url: string, body?: unknown) {
 const CLOCK_START = "2026-10-01";
 const CLOCK_END = "2026-11-20";
 
-export function Dashboard({ userName, role }: { userName: string; role: string }) {
-  const router = useRouter();
+export function Dashboard() {
   const { data, error, mutate } = useSWR("/api/overview", fetcher, { refreshInterval: 2000 });
+  useEffect(() => {
+    const onRefresh = () => mutate();
+    window.addEventListener("raktflow:refresh", onRefresh);
+    return () => window.removeEventListener("raktflow:refresh", onRefresh);
+  }, [mutate]);
 
   if (error) {
     return (
@@ -65,59 +66,7 @@ export function Dashboard({ userName, role }: { userName: string; role: string }
   }
 
   return (
-    <div className="min-h-dvh bg-muted/30">
-      <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur">
-        <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-4 px-6 py-3">
-          <div className="flex items-center gap-4">
-            <Logo />
-            <Separator orientation="vertical" className="h-6" />
-            {data ? (
-              <div className="text-sm">
-                <span className="font-medium">{data.bank.name}</span>
-                <span className="text-muted-foreground"> · {data.bank.city}, {data.bank.state}</span>
-                {data.bank.isDemo && <Badge variant="outline" className="ml-2">demo data</Badge>}
-              </div>
-            ) : (
-              <Skeleton className="h-5 w-56" />
-            )}
-          </div>
-          <div className="flex items-center gap-3 text-sm">
-            <span className="text-muted-foreground">
-              {userName} · {role.replace("_", " ")}
-            </span>
-            {data?.bank.isDemo && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={async () => {
-                  try {
-                    await post("/api/demo/reset");
-                    toast.success("Demo reset to 20 Oct");
-                    mutate();
-                  } catch (e) {
-                    toast.error((e as Error).message);
-                  }
-                }}
-              >
-                Reset demo
-              </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label="Log out"
-              onClick={async () => {
-                await authClient.signOut();
-                router.replace("/login");
-              }}
-            >
-              <LogOut />
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-[1400px] space-y-6 px-6 py-6">
+    <div className="space-y-6">
         {!data ? (
           <div className="grid gap-6 lg:grid-cols-3">
             <Skeleton className="h-28 lg:col-span-3" />
@@ -126,6 +75,7 @@ export function Dashboard({ userName, role }: { userName: string; role: string }
           </div>
         ) : (
           <>
+            <Hero data={data} />
             <ClockBar data={data} onChange={() => mutate()} />
             <GroupGrid data={data} />
             <div className="grid gap-6 lg:grid-cols-3">
@@ -156,7 +106,6 @@ export function Dashboard({ userName, role }: { userName: string; role: string }
             </div>
           </>
         )}
-      </main>
     </div>
   );
 }
@@ -199,7 +148,7 @@ function ClockBar({ data, onChange }: { data: OverviewData; onChange: () => void
 
   return (
     <Card className="py-4">
-      <CardContent className="flex flex-col gap-4 xl:flex-row xl:items-center">
+      <CardContent className="flex flex-col gap-4 2xl:flex-row 2xl:items-center">
         <div className="flex min-w-64 items-center gap-3">
           <CalendarDays className="size-5 text-primary" />
           <div>
@@ -564,5 +513,57 @@ function ActivityCard({ data }: { data: OverviewData }) {
         <div className="mt-3 flex items-center gap-1 text-[11px] text-muted-foreground"><Users className="size-3" />Synthetic donors are never dialled.</div>
       </CardContent>
     </Card>
+  );
+}
+
+/* ───────────── Hero + KPIs ───────────── */
+
+function Hero({ data }: { data: OverviewData }) {
+  const toDiwali = diffDays(data.today, DIWALI_2026);
+  const short = data.groups.filter((g) => g.status === "short");
+  const f = data.focus;
+  const covered = Math.min(f.gapUnits, f.expectedFromBookings);
+  const kpis = [
+    { label: toDiwali >= 0 ? "Days to Diwali" : "Days since Diwali", value: Math.abs(toDiwali), tone: "default" },
+    { label: "Blood groups at risk", value: short.length, tone: short.length ? "danger" : "ok" },
+    { label: `${f.group} units short`, value: Math.max(0, Math.ceil(f.gapUnits - covered)), tone: f.gapUnits - covered > 0 ? "danger" : "ok" },
+    { label: "Donors booked", value: f.bookedCount, tone: f.bookedCount ? "ok" : "default" },
+  ] as const;
+  return (
+    <div className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-[oklch(0.32_0.12_25)] via-[oklch(0.42_0.17_25)] to-[oklch(0.5_0.19_35)] p-6 text-white shadow-lg md:p-8">
+      <div className="pointer-events-none absolute -top-16 -right-10 size-64 rounded-full bg-white/10 blur-3xl" />
+      <div className="pointer-events-none absolute right-24 bottom-[-40px] size-40 rounded-full bg-[oklch(0.8_0.15_70)]/20 blur-2xl" />
+      <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+        <div className="max-w-xl">
+          <div className="text-xs font-medium uppercase tracking-[0.2em] text-white/70">Festive season readiness</div>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight md:text-4xl">
+            {short.length ? (
+              <>
+                {short.map((g) => g.group).join(", ")} runs short on {f.shortageDate ? shortDate(f.shortageDate) : "—"}
+              </>
+            ) : (
+              <>Stock is safe for the next {f.days.length} days</>
+            )}
+          </h1>
+          <p className="mt-2 text-sm text-white/80">
+            {data.campaign?.status === "completed"
+              ? "Gap covered before the festival. Calling has stopped."
+              : data.campaign?.status === "active"
+                ? "Drive approved. RaktFlow is calling eligible donors before they travel."
+                : short.length
+                  ? "Seen weeks ahead, from stock, the festival calendar and patients' scheduled transfusions."
+                  : "RaktFlow keeps watching stock, festivals and scheduled transfusions every day."}
+          </p>
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {kpis.map((k) => (
+            <div key={k.label} className="min-w-28 rounded-xl bg-white/10 px-4 py-3 ring-1 ring-white/15 backdrop-blur">
+              <div className={cn("text-3xl font-semibold tabular-nums", k.tone === "danger" && "text-[oklch(0.9_0.12_70)]")}>{k.value}</div>
+              <div className="text-[11px] leading-tight text-white/75">{k.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }

@@ -181,9 +181,17 @@ export const transfusions = pgTable(
       .notNull()
       .references(() => banks.id, { onDelete: "cascade" }),
     label: text("label").notNull(),
+    patientName: text("patient_name"),
+    age: integer("age"),
+    condition: text("condition"),
+    hospital: text("hospital"),
+    /** Days between transfusions (e.g. 21 for thalassemia every 3 weeks). Null = one-off. */
+    everyDays: integer("every_days"),
+    notes: text("notes"),
     bloodGroup: text("blood_group").notNull(),
     date: date("date").notNull(),
     units: integer("units").notNull().default(1),
+    createdAt: ts("created_at").notNull().defaultNow(),
   },
   (t) => [index("transfusions_bank_date_idx").on(t.bankId, t.date)],
 );
