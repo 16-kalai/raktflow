@@ -17,7 +17,11 @@ export async function POST(req: Request) {
     const [c] = await db.select().from(campaigns).where(eq(campaigns.id, p.campaign_id)).limit(1);
     if (c) {
       bankId = c.bankId;
-      if (p.approved_by) await db.update(campaigns).set({ approvedBy: p.approved_by, nudgebeeRunRef: p.run_id ?? null }).where(eq(campaigns.id, c.id));
+      if (p.approved_by) {
+        // NudgeBee reports the approver as a user ID; show a role, not an opaque ID.
+        const approver = /^[0-9a-f-]{36}/i.test(p.approved_by) ? "Medical officer (NudgeBee)" : p.approved_by;
+        await db.update(campaigns).set({ approvedBy: approver, nudgebeeRunRef: p.run_id ?? null }).where(eq(campaigns.id, c.id));
+      }
     }
   }
   await logEvent(db, bankId, "nudgebee", "NudgeBee", p.message ?? `Workflow step: ${p.step ?? "update"}`, p);
