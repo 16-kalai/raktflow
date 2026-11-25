@@ -1,0 +1,16 @@
+{
+  "name": "raktflow",
+  "private": true,
+  "packageManager": "pnpm@12.9.1",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "dev": "pnpm --filter @raktflow/web dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r --if-present test",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "db:generate": "pnpm --filter @raktflow/db generate",
+    "db:migrate": "pnpm --filter @raktflow/db migrate",
+    "db:seed": "pnpm --filter @raktflow/db seed",
+    "worker": "pnpm --filter @raktflow/worker dev"
+  }
+}
