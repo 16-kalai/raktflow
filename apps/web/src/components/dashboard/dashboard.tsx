@@ -383,6 +383,15 @@ function GapCard({ data, onChange }: { data: OverviewData; onChange: () => void 
                   {autoFill ? <Loader2 className="animate-spin" /> : <Play />}
                   {autoFill ? "Test donors answering…" : "Speed up: test donors answer"}
                 </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  disabled={busy !== null}
+                  onClick={() => act("load", () => post(`/api/campaigns/${c.id}/loadtest?count=20`), "20 test calls sent to the worker pool")}
+                >
+                  {busy === "load" ? <Loader2 className="animate-spin" /> : <Activity />}Load test the workers (fault injection)
+                </Button>
                 <p className="text-center text-[11px] text-muted-foreground">Sped-up bookings come from synthetic test donors.</p>
               </div>
             )}

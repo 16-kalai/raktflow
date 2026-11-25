@@ -1,0 +1,23 @@
+{
+  "name": "@raktflow/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "start": "tsx src/main.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@raktflow/core": "workspace:*",
+    "@raktflow/db": "workspace:*",
+    "@raktflow/domain": "workspace:*",
+    "@raktflow/flags": "workspace:*",
+    "@raktflow/sarvam": "workspace:*",
+    "dotenv": "^17.2.0",
+    "drizzle-orm": "^0.45.4",
+    "pino": "^10.0.0",
+    "tsx": "^4.23.0"
+  },
+  "devDependencies": { "@types/node": "^24.0.0", "typescript": "^5.9.0" }
+}

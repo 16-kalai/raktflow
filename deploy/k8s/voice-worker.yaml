@@ -1,0 +1,50 @@
+# Voice workers: stateless, horizontally scalable. Jobs are claimed with leases
+# and the number of live calls is capped globally (Postgres permits) by the
+# Flagsmith flag max_concurrent_calls, so adding replicas never exceeds the
+# voice provider's limit.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: voice-worker
+  namespace: raktflow
+  labels: { app: voice-worker, app.kubernetes.io/part-of: raktflow }
+spec:
+  replicas: 3
+  revisionHistoryLimit: 3
+  strategy: { type: RollingUpdate, rollingUpdate: { maxUnavailable: 0, maxSurge: 1 } }
+  selector:
+    matchLabels: { app: voice-worker }
+  template:
+    metadata:
+      labels: { app: voice-worker, app.kubernetes.io/part-of: raktflow }
+      annotations: { prometheus.io/scrape: "true", prometheus.io/port: "8080" }
+    spec:
+      terminationGracePeriodSeconds: 30
+      securityContext: { runAsNonRoot: true, runAsUser: 1000, fsGroup: 1000 }
+      containers:
+        - name: worker
+          image: raktflow/voice-worker:local
+          imagePullPolicy: IfNotPresent
+          ports: [{ name: http, containerPort: 8080 }]
+          envFrom: [{ secretRef: { name: raktflow-env } }]
+          env:
+            - { name: POD_NAME, valueFrom: { fieldRef: { fieldPath: metadata.name } } }
+            - { name: WORKER_SLOTS, value: "4" }
+            - { name: DB_POOL_MAX, value: "4" }
+            - { name: MOCK_PROVIDER_LIMIT, value: "3" }
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+            limits: { cpu: 500m, memory: 384Mi }
+          readinessProbe: { httpGet: { path: /readyz, port: http }, periodSeconds: 5 }
+          livenessProbe: { httpGet: { path: /healthz, port: http }, periodSeconds: 10, failureThreshold: 6 }
+          securityContext: { allowPrivilegeEscalation: false, readOnlyRootFilesystem: false, capabilities: { drop: [ALL] } }
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: voice-worker
+  namespace: raktflow
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels: { app: voice-worker }

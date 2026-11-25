@@ -254,6 +254,43 @@ importers:
         specifier: ^5.9.0
         version: 5.9.3
 
+  apps/worker:
+    dependencies:
+      '@raktflow/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@raktflow/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@raktflow/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
+      '@raktflow/flags':
+        specifier: workspace:*
+        version: link:../../packages/flags
+      '@raktflow/sarvam':
+        specifier: workspace:*
+        version: link:../../packages/sarvam
+      dotenv:
+        specifier: ^17.2.0
+        version: 17.4.2
+      drizzle-orm:
+        specifier: ^0.45.4
+        version: 0.45.4(@types/pg@8.23.1)(kysely@0.29.9)(pg@8.23.1)
+      pino:
+        specifier: ^10.0.0
+        version: 10.4.0
+      tsx:
+        specifier: ^4.23.0
+        version: 4.23.15
+    devDependencies:
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.19.2
+      typescript:
+        specifier: ^5.9.0
+        version: 5.9.3
+
   packages/core:
     devDependencies:
       typescript:

@@ -1,0 +1,19 @@
+# Production scaling (needs KEDA): scale voice workers on queue depth.
+# The global call limit in Flagsmith still caps live calls, so scaling out
+# adds headroom for retries and webhooks without breaching provider limits.
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: voice-worker
+  namespace: raktflow
+spec:
+  scaleTargetRef: { name: voice-worker }
+  minReplicaCount: 1
+  maxReplicaCount: 50
+  cooldownPeriod: 120
+  triggers:
+    - type: postgresql
+      metadata:
+        connectionFromEnv: DATABASE_URL
+        query: "select count(*) from call_jobs where status = 'queued' and next_attempt_at <= now()"
+        targetQueryValue: "20"
