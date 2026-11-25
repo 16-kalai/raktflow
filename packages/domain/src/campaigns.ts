@@ -110,7 +110,10 @@ export async function reconcile(db: Database, bank: Bank, flags: BankFlags): Pro
       .where(and(eq(campaigns.id, campaign.id), eq(campaigns.status, "pending_approval")))
       .returning();
     if (activated) {
-      const queued = await enqueueDonors(db, bank.id, activated);
+      // Only a medical officer's approval in NudgeBee may ring the real demo phone.
+      // Approvals made inside RaktFlow (anyone viewing the public demo) use test donors only.
+      const realCalls = (activated.approvedBy ?? "").includes("NudgeBee");
+      const queued = await enqueueDonors(db, bank.id, activated, realCalls);
       await logEvent(db, bank.id, "campaign", "raktflow", `Surge mode ON in Flagsmith → campaign active, ${queued} eligible ${activated.bloodGroup} donors queued`);
     }
     return;
@@ -123,7 +126,7 @@ export async function reconcile(db: Database, bank: Bank, flags: BankFlags): Pro
   }
 }
 
-async function enqueueDonors(db: Database, bankId: string, campaign: Campaign): Promise<number> {
+async function enqueueDonors(db: Database, bankId: string, campaign: Campaign, realCalls: boolean): Promise<number> {
   const pool = await db
     .select()
     .from(donors)
@@ -155,9 +158,9 @@ async function enqueueDonors(db: Database, bankId: string, campaign: Campaign): 
           campaignId: campaign.id,
           donorId: d.id,
           priority: d.isDemoContact ? 1 : 100,
-          simulated: !d.isDemoContact,
+          simulated: !(d.isDemoContact && realCalls),
           // Synthetic donors wait for the "simulate" button; only real contacts are dialled now.
-          nextAttemptAt: d.isDemoContact ? new Date() : new Date("2999-01-01T00:00:00Z"),
+          nextAttemptAt: d.isDemoContact && realCalls ? new Date() : new Date("2999-01-01T00:00:00Z"),
         })),
       )
       .onConflictDoNothing();

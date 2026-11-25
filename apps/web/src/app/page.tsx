@@ -30,7 +30,7 @@ export default async function Home() {
         <Logo />
         <div className="flex gap-2">
           <Button variant="ghost" asChild><Link href="/login">Log in</Link></Button>
-          <Button asChild><Link href="/signup">Get started</Link></Button>
+          <Button asChild><a href="/demo">View live demo</a></Button>
         </div>
       </header>
 
@@ -44,7 +44,8 @@ export default async function Home() {
           before the shortage and calls donors before they leave.
         </p>
         <div className="mt-8 flex gap-3">
-          <Button size="lg" asChild><Link href="/signup">Open the coordinator dashboard <ArrowRight /></Link></Button>
+          <Button size="lg" asChild><a href="/demo">View live demo <ArrowRight /></a></Button>
+          <Button size="lg" variant="outline" asChild><Link href="/signup">Create your own account</Link></Button>
         </div>
       </section>
 

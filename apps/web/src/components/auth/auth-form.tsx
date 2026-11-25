@@ -67,6 +67,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
                 {pending && <Loader2 className="animate-spin" />}
                 {mode === "signup" ? "Create account" : "Log in"}
               </Button>
+              <a href="/demo" className="text-sm font-medium text-primary underline-offset-4 hover:underline">Skip: view the live demo →</a>
               <p className="text-sm text-muted-foreground">
                 {mode === "signup" ? "Already have an account? " : "New here? "}
                 <Link className="text-primary underline-offset-4 hover:underline" href={mode === "signup" ? "/login" : "/signup"}>

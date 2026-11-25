@@ -334,7 +334,7 @@ function GapCard({ data, onChange }: { data: OverviewData; onChange: () => void 
                   <p className="mt-1 text-muted-foreground">Call {c.bloodGroup} donors {shortDate(c.windowStart)}–{shortDate(c.windowEnd)}, before they travel. Calls start when surge_mode turns ON in Flagsmith.</p>
                 </div>
                 <Button variant="outline" className="w-full" disabled={busy !== null} onClick={() => act("approve", () => post(`/api/campaigns/${c.id}/approve`), "Approved: surge_mode ON")}>
-                  {busy === "approve" && <Loader2 className="animate-spin" />}Approve here instead (fallback)
+                  {busy === "approve" && <Loader2 className="animate-spin" />}Approve here instead (test donors only)
                 </Button>
               </div>
             )}
