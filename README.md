@@ -7,6 +7,42 @@ Every Diwali, Durga Puja and Ganeshotsav, regular donors travel home, college dr
 - **Live demo:** https://raktflow.vercel.app → click **"View live demo"** (one-click login, no signup)
 - **Built for:** WeMakeDevs Festive Hacks, Bengaluru, 25 Nov 2026
 
+## The problem
+
+### Every festival season, India's blood banks run dry, and patients wait
+
+India's blood supply depends on two things: **donation camps** (colleges, offices, housing societies) and **regular donors who live near the bank**. During Diwali, Durga Puja and the other festival weeks, both disappear at the same time. Camps aren't held, and donors travel home. **But the demand doesn't stop.** Thalassemia children still need transfusions on schedule, and cancer surgeries, accidents and deliveries keep coming.
+
+This year alone, in the three weeks around Diwali and the Pujas:
+
+| When | Where | What happened | Source |
+|---|---|---|---|
+| Oct 30 2026 | Dhanbad | A thalassemia patient waited **11 days** for blood | Times of India |
+| Nov 14 2026 | Nagpur | **10 of 15** blood banks had **zero whole blood**, low *"since the beginning of Diwali"*. Hospitals asked patients' families and staff to donate | The Hitavada |
+| Nov 15 2026 | Mumbai | Tata Memorial, India's leading cancer hospital, does **35–40 surgeries a day** and warned **nearly half** could be affected. Maharashtra's blood council blamed reduced donations over the Diwali holidays | Hindustan Times · The Indian Practitioner |
+| Nov 17 2026 | Mumbai | Sion hospital needs **90–120 units a day** and collected **14** at a recent camp. About **300 thalassemia children** depend on Nair, Sion and KEM | The Indian Practitioner |
+| Nov 19 2026 | West Bengal | After the Pujas the whole state had about **10,150 units** against a need of **~3,000 a day**: roughly **3 days of blood** | Millennium Post |
+
+**It's not new; it comes back every year:** Mumbai 2017 · Pune 2023 · Maharashtra and Surat 2024 · Pune 2025 · and **7 separate reports in 3 weeks** in 2026.
+
+### Why it keeps happening
+
+1. **The supply drops on a known date.** Camps pause and donors leave the city for the festival. Diwali is on the calendar a year ahead, but nobody plans the blood drive around it.
+2. **You can't stockpile.** Red cells last **35–42 days** and platelets only **5**. A bank can't simply collect extra in September.
+3. **Banks only see today.** Stock systems (including the government's e-RaktKosh portal) show what's on the shelf **now**. A coordinator knows today's O+ count, but not whether it'll last until the 14th, when a thalassemia child is booked for a transfusion.
+4. **The fix is a phone and a list.** When stock runs low, a coordinator calls donors one by one. Sankalp India Foundation (Bengaluru) wrote that in a holiday shortage, a coordinator spent **6 hours calling 30+ donors, and 2 came** that day.
+
+> **India doesn't run out of donors. It runs out of donors in the right city, in the right week.**
+
+### What a blood bank actually needs
+
+- **A warning weeks ahead**, per blood group, for this bank and this festival window, with the patients whose blood is at risk pinned on the chart.
+- **A human decision**, because the medical officer has to approve before anyone calls donors.
+- **Calls that happen at scale and in the donor's language, before the donor travels**, that screen for eligibility and book a real slot.
+- **A stop signal**, so calling ends the moment the gap is covered, and nobody is over-collected or spammed.
+
+That is what RaktFlow does.
+
 ## What it does
 
 1. **Forecasts the shortage.** A FIFO stock model per blood group (expiry, 3 days of safe stock, festive donor drop-off, pinned patient transfusions) projects 28 days ahead. In the demo, O+ falls below safe stock on 11 Nov, with a gap of 25 units.
@@ -136,12 +172,21 @@ Environment variables (keep them in the gitignored `.env.local`; never commit th
 
 Full sponsor setup, including flag names, segments, the agent prompt and workflow steps, is in [docs/SPONSOR-SETUP.md](docs/SPONSOR-SETUP.md).
 
-## Data sources for the numbers on the landing page
+## Sources
 
-- 35–40 surgeries a day at Tata Memorial, with nearly half at risk six days after Diwali: Hindustan Times, 15 Nov 2026.
-- 10 of 15 blood banks in Nagpur with zero whole blood since Diwali began: The Hitavada, 14 Nov 2026.
-- 3 days of blood left for the whole of West Bengal after the Pujas: Millennium Post, 19 Nov 2026.
-- The demo bank's stock, donors and patients are synthetic. Patient names are illustrative.
+Opened and checked on 25 Nov 2026:
+- The Hitavada, 14 Nov 2026: Nagpur, 10 of 15 banks with no whole blood. https://www.thehitavada.com/Encyc/2026/11/14/10-blood-banks-run-out-of-whole-blood-stock-hospitals-ask-patients-relatives-and-staff-members-to-donate-blood.html
+- The Indian Practitioner, 17 Nov 2026 (credits Hindustan Times): Tata Memorial 35–40 surgeries a day, nearly half at risk; Sion 90–120 units a day; ~300 thalassemia children; shortage due to reduced donations over Diwali. https://theindianpractitioner.com/blood-supply-crunch-threatens-surgeries-at-tata-memorial-other-mumbai-hospitals/
+- Millennium Post, 19 Nov 2026: West Bengal needs ~3,000 units a day and had 10,150 units after the Pujas. https://www.millenniumpost.in/bengal/severe-shortage-bengal-to-hold-blood-donation-drive-683879
+- Sankalp India Foundation, "Blood Shortage in December": 6 hours of calling, 30+ donors called, 2 came. https://sankalpindia.net/blood-donation-organization/blood-shortage-december
+
+From our research dossier:
+- Hindustan Times, 15 Nov 2026 (the original Tata Memorial report). https://www.hindustantimes.com/cities/mumbai-news/blood-shortage-hits-city-hospitals-in-festive-season-surgeries-deferred-101794683022517.html
+- Times of India, 30 Oct 2026: Dhanbad thalassemia patient's 11-day wait. https://timesofindia.indiatimes.com/city/ranchi/dhanbad-thalassaemia-patient-gets-blood-after-11-day-wait/articleshow/135367796.cms
+- Earlier years: Indian Express, 14 Nov 2017 (Mumbai) · TOI, 19 Nov 2023 (Pune) · TOI, 19 Nov 2024 (Maharashtra) · TOI, 14 Nov 2024 (Surat) · TOI, 30 Nov 2025 (Pune).
+- The 7 reports in 2026: Dhanbad (TOI, 30 Oct) · Nagpur (Hitavada, 14 Nov) · Tata Memorial (HT, 15 Nov) · KEM (TOI, 16 Nov) · Tata/Sion (Indian Practitioner, 17 Nov) · Mumbai surgeries postponed (Gujarati Mid-Day, 19 Nov) · West Bengal (Millennium Post, 19 Nov).
+
+The demo bank (Sahyog Blood Centre, Pune), its stock, donors and patients are synthetic. Patient names are illustrative.
 
 ## AI use disclosure
 
