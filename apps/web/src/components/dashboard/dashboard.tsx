@@ -85,6 +85,23 @@ export function Dashboard({ userName, role }: { userName: string; role: string }
             <span className="text-muted-foreground">
               {userName} · {role.replace("_", " ")}
             </span>
+            {data?.bank.isDemo && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  try {
+                    await post("/api/demo/reset");
+                    toast.success("Demo reset to 20 Oct");
+                    mutate();
+                  } catch (e) {
+                    toast.error((e as Error).message);
+                  }
+                }}
+              >
+                Reset demo
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="icon"

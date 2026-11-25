@@ -61,7 +61,7 @@ export function ForecastChart({ data }: { data: OverviewData }) {
           )}
           {data.transfusions.map((t) =>
             t.date >= first && t.date <= last ? (
-              <ReferenceLine key={t.label} x={t.date} stroke="var(--primary)" strokeDasharray="2 2" label={{ value: `${t.label.split(" ·")[0]}'s transfusion`, position: "insideBottomLeft", fontSize: 11, fill: "var(--primary)" }} />
+              <ReferenceLine key={t.label} x={t.date} stroke="var(--primary)" strokeDasharray="2 2" label={{ value: `${t.label.split(",")[0]}'s transfusion`, position: "insideBottomLeft", fontSize: 11, fill: "var(--primary)" }} />
             ) : null,
           )}
           <Area type="monotone" dataKey="stock" name={`${group} if nothing changes`} stroke="var(--muted-foreground)" strokeWidth={2} fill="url(#stockFill)" isAnimationActive />

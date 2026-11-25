@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray, isNull, notInArray, sql } from "drizzle-orm";
 import { checkEligibility, type BloodGroup } from "@raktflow/core";
 import { bookings, callJobs, campaigns, donors, type Database } from "@raktflow/db";
-import { FlagsmithAdmin, FLAG, adminConfigFromEnv, type BankFlags } from "@raktflow/flags";
+import { FlagsmithAdmin, FLAG, adminConfigFromEnv, refreshFlags, type BankFlags } from "@raktflow/flags";
 import { getOpenSlots, bookSlot } from "./bookings";
 import { campaignWindow, loadBankForecast, type BankForecast } from "./forecast";
 import { logEvent } from "./events";
@@ -182,6 +182,7 @@ async function completeCampaign(db: Database, bankId: string, campaign: Campaign
   if (cfg) {
     try {
       await new FlagsmithAdmin(cfg).setFlag(FLAG.surgeMode, { enabled: false });
+      await refreshFlags();
       await logEvent(db, bankId, "flag", "raktflow", "surge_mode → OFF in Flagsmith");
     } catch (err) {
       await logEvent(db, bankId, "flag", "raktflow", `Could not switch surge_mode off: ${(err as Error).message}`);

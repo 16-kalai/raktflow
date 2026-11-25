@@ -95,7 +95,7 @@ export class FlagsmithAdmin {
   async auditLog(pageSize = 20): Promise<AuditEntry[]> {
     const page = await this.request<{ results: RawAudit[] }>(
       "GET",
-      `/api/v1/audit/?project=${this.cfg.projectId}&page_size=${pageSize}`,
+      `/api/v1/projects/${this.cfg.projectId}/audit/?page_size=${pageSize}`,
     );
     return page.results.map((r) => ({
       id: r.id,

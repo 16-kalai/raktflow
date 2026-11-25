@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { and, eq } from "drizzle-orm";
 import { campaigns, getDb } from "@raktflow/db";
 import { logEvent } from "@raktflow/domain";
-import { FLAG, FlagsmithAdmin, adminConfigFromEnv } from "@raktflow/flags";
+import { FLAG, FlagsmithAdmin, adminConfigFromEnv, refreshFlags } from "@raktflow/flags";
 import { apiMember } from "@/server/session";
 
 /**
@@ -28,6 +28,7 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
     return NextResponse.json({ ok: true, flagsmith: false });
   }
   await new FlagsmithAdmin(cfg).setFlag(FLAG.surgeMode, { enabled: true });
+  await refreshFlags();
   await logEvent(db, member.bank.id, "flag", member.name, "surge_mode → ON in Flagsmith (approved in RaktFlow)");
   return NextResponse.json({ ok: true, flagsmith: true });
 }
